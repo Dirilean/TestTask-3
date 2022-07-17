@@ -1,19 +1,23 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Services {
     public class EventService : MonoBehaviour {
+        const string EVENT_DATA_KEY = "eventData";
+
         private string _serverUrl;
         private int _cooldownBeforeSendInSeconds = 10;
         private WaitForSeconds _cooldownBeforeSend;
         private IEnumerator _currentIenumerator;
         private IConnectManager _serverConnect;
+        private string _eventsDataJson;
 
-        private List<EventData> _events = new List<EventData>();
+        private EventsData _eventsData = new EventsData();
 
         public void init(IConnectManager serverConnect) {
             _serverConnect = serverConnect;
+            loadUnsentEvents();
+            if (_eventsData.events.Count > 0) startSendingIfNotStarted();
         }
 
         public string serverUrl {
@@ -48,8 +52,14 @@ namespace Services {
         /// <param name="type">тип ивента</param>
         /// <param name="data">данные ивента</param>
         public void trackEvent(string type, string data) {
-            _events.Add(new EventData(type, data));
+            _eventsData.events.Add(new EventData(type, data));
+            
+            _eventsDataJson = JsonUtility.ToJson(_eventsData);
+            PlayerPrefs.SetString(EVENT_DATA_KEY, _eventsDataJson);
+            
             startSendingIfNotStarted();
+            
+            Debug.Log($"track event: {type}:{data}");
         }
 
         private void startSendingIfNotStarted() {
@@ -62,18 +72,26 @@ namespace Services {
         private IEnumerator sendEventsAfterCooldown() {
             yield return _cooldownBeforeSend;
 
-            var eventsData = new EventsData(_events.ToArray());
-            string json = JsonUtility.ToJson(eventsData);
-            IEnumerator r = _serverConnect.postCorutine(serverUrl, json, () => removeSendedEvents(eventsData.events),
+            string sendingEvents = (string)_eventsDataJson.Clone();
+            IEnumerator r = _serverConnect.postCorutine(serverUrl, _eventsDataJson, () => removeSendedEvents(sendingEvents),
                 startSendingIfNotStarted);
             StartCoroutine(r);
             _currentIenumerator = null;
         }
 
-        private void removeSendedEvents(EventData[] sendedEvents) {
-            foreach (var sendedEvent in sendedEvents) {
-                _events.Remove(sendedEvent);
+        private void removeSendedEvents(string jsonSendedEvents) {
+            EventsData sendedEventsData = JsonUtility.FromJson<EventsData>(jsonSendedEvents);
+            foreach (var sendedEvent in sendedEventsData.events) {
+                _eventsData.events.Remove(sendedEvent);
             }
+        }
+        
+        private void loadUnsentEvents() {
+            string json = PlayerPrefs.GetString(EVENT_DATA_KEY);
+            if (string.IsNullOrEmpty(json)) return;
+            var eventsData = JsonUtility.FromJson<EventsData>(json);
+            _eventsData.events.AddRange(eventsData.events);
+            _eventsDataJson = json;
         }
     }
 }

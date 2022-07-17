@@ -26,6 +26,7 @@ namespace PlaymodeTests {
         [UnityTearDown]
         public IEnumerator tearDown() {
             yield return null;
+            PlayerPrefs.DeleteAll();
             _mockConnectionManager = null;
             _eventService = null;
         }

@@ -1,20 +1,38 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Services {
-    public class Example {
-        void main() {
+    public class Example : MonoBehaviour {
+        [SerializeField] private EventService eventService;
+        IEnumerator Start() {
             //registration
             var serverConnect = new ConnectManager();
-            var gameObject = Object.Instantiate(new GameObject());
-            var eventService = gameObject.AddComponent<EventService>();
-         //   eventService.init(serverConnect);
-
+            eventService.init(serverConnect);
+            
             //settings
             eventService.cooldownBeforeSendInSeconds = 1;
-            eventService.serverUrl = "http://google.com";
+            eventService.serverUrl = "0.0.0.0";
             
             //using
-            eventService.trackEvent("startLevel","level:3");
+            yield return new WaitForSeconds(3f);
+            eventService.trackEvent("openGameTime",DateTime.Now.ToLongTimeString());
+
+            while (true) {
+                yield return new WaitForSeconds(Random.Range(0,3));
+                eventService.trackEvent("countOfGold",Random.Range(1,100).ToString());
+            }
+        }
+        
+        [ContextMenu("ReadPlayerPrefs")]
+        private void readPlayerPrefs() {
+            Debug.Log($"playerPrefs contains {PlayerPrefs.GetString("eventData")}");
+        }
+
+        [ContextMenu("DeletePlayerPrefs")]
+        private void deletePlayerPrefs() {
+            PlayerPrefs.DeleteAll();
         }
     }
 }

@@ -1,12 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Services {
     [Serializable]
-    public struct EventsData {
-        public EventData[] events;
-
-        public EventsData(EventData[] events) {
-            this.events = events;
-        }
+    public class EventsData {
+        public List<EventData> events = new List<EventData>();
     }
 }
