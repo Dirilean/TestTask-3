@@ -2,18 +2,32 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace Services {
     public class EventService : MonoBehaviour {
         private string _serverUrl;
-
         private int _cooldownBeforeSendInSeconds = 10;
         private WaitForSeconds _cooldownBeforeSend;
         private IEnumerator _currentIenumerator;
+        private IConnectManager _serverConnect;
+        
+        private List<EventData> _events = new List<EventData>();
 
-        private List<(string, string)> _events = new List<(string, string)>();
+        public void init(IConnectManager serverConnect) {
+            _serverConnect = serverConnect;
+        }
+        public string serverUrl {
+            get { return _serverUrl; }
+            set {
+                if (string.IsNullOrWhiteSpace(value)) {
+                    Debug.LogWarning("value must not be empty");
+                    return;
+                }
 
+                _serverUrl = value;
+            }
+        }
+        
         /// <summary>
         /// минимальное время повтора отправки очереди из скопившихся ивентов </summary>
         public int cooldownBeforeSendInSeconds {
@@ -28,28 +42,16 @@ namespace Services {
                 _cooldownBeforeSend = new WaitForSeconds(_cooldownBeforeSendInSeconds);
             }
         }
-        
-        public string serverUrl {
-            get { return _serverUrl;}
-            set {
-                if (string.IsNullOrWhiteSpace(value)) {
-                    Debug.LogWarning("value must not be empty"); 
-                    return;
-                }
-
-                _serverUrl = value;
-            }
-        }
 
         /// <summary>
         /// Сохранить ивент для отправки </summary>
         /// <param name="type">тип ивента</param>
         /// <param name="data">данные ивента</param>
         public void trackEvent(string type, string data) {
-            _events.Add((type, data));
+            _events.Add(new EventData(type, data));
             startSendingIfNotStarted();
         }
-        
+
         private void startSendingIfNotStarted() {
             if (_currentIenumerator == null) {
                 _currentIenumerator = sendEventsAfterCooldown();
@@ -60,38 +62,40 @@ namespace Services {
         private IEnumerator sendEventsAfterCooldown() {
             yield return _cooldownBeforeSend;
 
-            (string, string)[] sendedEvents = _events.ToArray();
-            string json = JsonUtility.ToJson(sendedEvents);
-            StartCoroutine(postCorutine(json, () => removeSendedEvents(sendedEvents), startSendingIfNotStarted));
+            var eventsData = new EventsData(_events.ToArray());
+            string json = JsonUtility.ToJson(eventsData);
+            IEnumerator r = _serverConnect.postCorutine(serverUrl, json, () => removeSendedEvents(eventsData.events),
+                startSendingIfNotStarted);
+            StartCoroutine(r);
             _currentIenumerator = null;
         }
 
-        private void removeSendedEvents((string, string)[] sendedEvents) {
+        private void removeSendedEvents(EventData[] sendedEvents) {
             foreach (var sendedEvent in sendedEvents) {
                 _events.Remove(sendedEvent);
             }
         }
+        
 
-        /// <summary>
-        /// Отправка post запроса </summary>
-        private IEnumerator postCorutine(string json, Action onSuccess, Action onError) {
-            Debug.Log("send: " + json);
-            UnityWebRequest www = UnityWebRequest.Put(_serverUrl, json);
-            www.method = "POST";
-            www.SetRequestHeader("Content-Type", "application/json");
-            www.SetRequestHeader("Accept", "application/json");
 
-            yield return www.SendWebRequest();
+        [Serializable]
+        public struct EventsData {
+            public EventData[] events;
 
-            Debug.Log(www.downloadHandler.text);
-
-            if (www.isNetworkError || www.isHttpError) {
-                Debug.Log(www.error);
-                onError.Invoke();
+            public EventsData(EventData[] events) {
+                this.events = events;
             }
-            else {
-                onSuccess.Invoke();
+        }
+        [Serializable]
+        public struct EventData {
+            public string type;
+            public string data;
+
+            public EventData(string type, string data) {
+                this.type = type;
+                this.data = data;
             }
         }
     }
 }
+
