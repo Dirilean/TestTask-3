@@ -20,7 +20,7 @@ namespace Services {
             eventService.trackEvent("openGameTime",DateTime.Now.ToLongTimeString());
 
             while (true) {
-                yield return new WaitForSeconds(Random.Range(0,3));
+                yield return new WaitForSeconds(Random.Range(0,5));
                 eventService.trackEvent("countOfGold",Random.Range(1,100).ToString());
             }
         }
