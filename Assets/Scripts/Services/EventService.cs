@@ -59,7 +59,7 @@ namespace Services {
         public void trackEvent(string type, string data) {
             _eventsData.events.Add(new EventData(type, data));
             updateJsonOfEventsData();
-            
+
             PlayerPrefs.SetString(EVENT_DATA_KEY, _eventsDataJson);
             startSendingIfNotStarted();
 

@@ -5,26 +5,28 @@ using Random = UnityEngine.Random;
 
 namespace Services {
     public class Example : MonoBehaviour {
-        [SerializeField] private EventService eventService;
+        [SerializeField] private EventService _eventService;
+
         IEnumerator Start() {
             //registration
             var serverConnect = new ConnectManager();
-            eventService.init(serverConnect);
-            
+            _eventService.init(serverConnect);
+
             //settings
-            eventService.cooldownBeforeSendInSeconds = 1;
-            eventService.serverUrl = "0.0.0.0";
-            
+            _eventService.cooldownBeforeSendInSeconds = 1;
+            _eventService.serverUrl = "0.0.0.0";
+
             //using
             yield return new WaitForSeconds(3f);
-            eventService.trackEvent("openGameTime",DateTime.Now.ToLongTimeString());
+            _eventService.trackEvent("openGameTime", DateTime.Now.ToLongTimeString());
 
             while (true) {
-                yield return new WaitForSeconds(Random.Range(0,5));
-                eventService.trackEvent("countOfGold",Random.Range(1,100).ToString());
+                yield return new WaitForSeconds(Random.Range(0, 5));
+                _eventService.trackEvent("countOfGold", Random.Range(1, 100).ToString());
             }
+            // ReSharper disable once IteratorNeverReturns
         }
-        
+
         [ContextMenu("ReadPlayerPrefs")]
         private void readPlayerPrefs() {
             Debug.Log($"playerPrefs contains {PlayerPrefs.GetString("eventData")}");
