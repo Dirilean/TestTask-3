@@ -101,6 +101,7 @@ namespace PlaymodeTests {
                     countSending++;
                     Debug.Log(json);
                     sendingJsons.Add(json);
+                    onSuccess.Invoke();
                 }).Returns(mockedPostCorutine
                 );
 
@@ -116,8 +117,8 @@ namespace PlaymodeTests {
             yield return new WaitForSeconds(0.3f);
 
             //прошло 1.2 сек
-            Assert.IsTrue(countSending == 1, "первое сообщение не отправилось спустя 1,1сек");
-            //  Assert.IsTrue(sendingJsons[0] == "{\"events\":[{\"type\":\"levelStart\",\"data\":\"level:3\"},{\"type\":\"levelStart\",\"data\":\"level:4\"}]}", $"Сообщение {sendingJsons[0]} сформировалось неверно");
+            Assert.IsTrue(countSending == 1, "первое сообщение не отправилось спустя 1,1сек"); 
+            Assert.IsTrue(sendingJsons[0] == "{\"events\":[{\"type\":\"levelStart\",\"data\":\"level:3\"},{\"type\":\"levelStart\",\"data\":\"level:4\"}]}", $"Сообщение {sendingJsons[0]} сформировалось неверно");
             
             //отправлен второй запрос
             _eventService.trackEvent("use", "scroll:4");
@@ -129,17 +130,9 @@ namespace PlaymodeTests {
 
             //прошло 2.1 сек
             Assert.IsTrue(countSending == 2, "второе сообщение не отправилось");
-            //   Debug.Log(sendingJsons[1]);
-            //   Assert.IsTrue(sendingJsons[1] == "{\"events\":[{\"use\":\"scroll:4\"}]}", $"Сообщение {sendingJsons[1]} сформировалось неверно");
+            Assert.IsTrue(sendingJsons[1] == "{\"events\":[{\"type\":\"use\",\"data\":\"scroll:4\"}]}", $"Сообщение {sendingJsons[1]} сформировалось неверно");
         }
 
-        private void onError() {
-            Debug.Log("error");
-        }
-
-        private void onSuccess() {
-            Debug.Log("success");
-        }
         
         private IEnumerator mockedPostCorutine() {
             yield return null;
